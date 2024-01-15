@@ -1,12 +1,11 @@
-# TempleCraft
-2D Minecraft clone for TempleOS
+# ZealCraft
+2D Minecraft clone for ZealOS (this is based off the TempleOS version made by wirecea)
 
-The code is in HolyC and you can't actually do anything with it. 
-I've only uploaded it here for portability reasons.
-There are going to be many unknown characters due to the images saved within the file.
+The code has been converted from HolyC to ZealC. However, this port as of January 14 is incomplete,
+for some reason it crashes after starting from the main menu. 
 
-# Video
-https://www.youtube.com/watch?v=gBZvcGmrMQs
+# Video of the TempleOS version called TempleCraft
+https://www.youtube.com/watch?v=gBZvcGmrMQs  
 
-# Get the game here:
+# The TempleOS version of the game in ISO.C format:
 https://wircea.itch.io/templecraft
