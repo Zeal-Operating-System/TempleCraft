@@ -1,0 +1,52 @@
+TempleCraft changes manually made by doodguy and not the converter:
+-In lines 335 and 344 I added a return 0; because the compiler complained with a warning about the function needing to return a value.
+
+-On line 439 in the U0 DrawSky function, the compiler warns that sunRadius is using a 64-bit reg variable. 
+So I changed sunRadius from a U8 to a U64.
+-Line 404, the compiler complains that the variable F64 time is unused. So I removed it. It is indeed unused because
+there is some commented out code where time actually gets used for the day-night cycles but the original
+author didn't get around to finishing it or something. The original function definition will be left as a comment.
+
+-In the WorldInteract function, on line 719 the compiler warns about the variable id using a 64-bit variable.
+This was changed to U64 id
+
+-In the DrawIt function, on line 764, the Seed was seeded with Seed(god.words[RandU64%god.num_words]);
+This was changed to Seed(god.words[RandU64%god.word_count]); because the previous would result in an 
+error since the GodExterns were renamed
+-On lines 819 through 823, ms.pos.z, ms.pos.x, and ms.pos.y were changed to mouse.pos.z and mouse.pos.x, and mouse.pos.y
+Similar changes were made for line 834 and 840
+-ALSO for DrawIt I later saw that the compiler says that the variable CTask *task is unused. So I changed
+the function definition to U0 DrawIt(CDC *dc). The original function name is left as a comment.
+
+-Due to changes to DrawSky's function definition, on line 957, the first call to DrawSky, I change the call
+from DrawSky(dc, 3.0) to DrawSky(dc);
+
+-More ms to mouse shenanigans for line 1033 and 1035
+
+-In the SaveWorld function, on line 1613 I changed ACAlloc(maxData) to SystemAlloc
+-On line 1630 there was a warning about 64-bit reg variables so I changed it to U64
+
+-On line 1766 in the TheLoop function I changed ScanMsg to MessageScan 
+and also MSG_KEY_DOWN and so on were changed to MESSAGE_KEY_DOWN and so on
+-This is also true for lines 1772, 1777, 1782, and 1824
+-In line 1862 I changed Snd to Sound
+-In line 1894 I changed SndRst to SoundReset
+
+-In lines 1684 and 1685 I converted the variables sum and i to 64-bit values even though
+the function name is "GetU8FromStringB16". If it breaks, too bad. Tom can fix it. 
+
+-In line 1741 in the LoadWorld function I changed blockData from U8 to U64 because of 
+another one of those warnings.
+
+-In line 1954 in the MenuAbout function I commented out the return i
+
+-In line 1998 and line 2035 in the StartupMenu function I changed StrCpy to StrCopy
+-In line 2035 and 2036 I also changed god.num_word to god.word_count
+-In line 2048 I changed StrCpy to StrCopy
+
+-In line 2119 in main I changed WIG_USER_TASK_DFT to WIG_USER__TASK_DEFAULT
+
+
+
+
+
