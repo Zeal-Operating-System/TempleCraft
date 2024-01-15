@@ -332,6 +332,7 @@ CTask GameMusic()
     goto ResetMusic;
   else
     Exit;
+  return 0;
 }
 
 CSoundEffectFrame *ns;  
@@ -340,7 +341,7 @@ CTask ResumeMusic(CTask* tsk)
 {
   DeathWait(tsk);
     music.mute=FALSE;
- 
+  return 0; 
 }
 /*
 Initially, the game used one-frame beeps for sounds but while I was
@@ -400,7 +401,7 @@ It is still available but it's commented out.
 You can enable it if you want. Just follow the comments below
 */
 #define polyDist 40000
-U0 DrawSky(CDC* dc, F64 time)
+U0 DrawSky(CDC* dc)	// Originally was U0 DrawSky(CDC* dc, F64 time)
 {
 
   CD3I32 poly[3];
@@ -435,7 +436,7 @@ U0 DrawSky(CDC* dc, F64 time)
   {
     F64 sunY=100;
     sunY-=human.pos.y/WORLD_HEIGHT*100;
-    U8 sunRadius= 24;
+    U64 sunRadius= 24;
     F64 sunX= (é+ã/3)/(2*ã/3)*(640+sunRadius*16)-sunRadius*8;
 
     sunRadius-=Abs(é*5);
@@ -715,7 +716,7 @@ U0 WorldInteract(I64 y, I64 x)
     else
     {
     BLOCKINTERACT:
-      U8 id = map[y][x].id;
+      U64 id = map[y][x].id;
       switch(id)
       { 
       default:
@@ -753,14 +754,14 @@ U0 WorldInteract(I64 y, I64 x)
 This will get called 30 times a second.
 Most game flow is present here
 */
-U0 DrawIt(CTask *task,CDC *dc)
+U0 DrawIt(CDC *dc)	//U0 DrawIt(CTask *task, CDC *dc)
 {
   //Lets God make decissions 
   if(GODMODE && GAMEOPEN)
   {
     Bool isGodTick = Floor(tS/GODTICK) > lastGodTick;
     Seed(0);
-    Seed(god.words[RandU64%god.num_words]);
+    Seed(god.words[RandU64%god.word_count]);
     U8* moveId = RandU64%10;
 
     if(isGodTick)
@@ -815,10 +816,10 @@ U0 DrawIt(CTask *task,CDC *dc)
          movement.up=FALSE;
         }
        break;
-      case 4: ms.pos.z++; break;
-      case 5: ms.pos.z--; break;
-      case 6: ms.pos.x = RandU16%640;
-      case 7: ms.pos.y = RandU16%470+10; //Avoid header mouseover 
+      case 4: mouse.pos.z++; break;
+      case 5: mouse.pos.z--; break;
+      case 6: mouse.pos.x = RandU16%640;
+      case 7: mouse.pos.y = RandU16%470+10; //Avoid header mouseover 
       case 8: human.hasLClick=TRUE;
       case 9: human.hasRClick=TRUE; 
     }    
@@ -830,13 +831,13 @@ U0 DrawIt(CTask *task,CDC *dc)
  
   //Mousewheel support for the inventory
   //Keyboard support for inventory (handy for mouses without a wheel)
-  if(ms_last.pos.z<ms.pos.z || human.scroll < 0)
+  if(mouse_last.pos.z<mouse.pos.z || human.scroll < 0)
   {
    PlaySoundEffect(500,250,0.05);
    CycleInventory(FALSE);
    human.scroll = 0; 
   }
-  if(ms_last.pos.z>ms.pos.z || human.scroll > 0)
+  if(mouse_last.pos.z>mouse.pos.z || human.scroll > 0)
   {
    PlaySoundEffect(250,500,0.05);
    CycleInventory(TRUE);
@@ -953,7 +954,7 @@ U0 DrawIt(CTask *task,CDC *dc)
   camerapos.x = Min(Max(0,human.pos.x),WORLD_WIDTH);
 
  //DRAWSTUFF
-  DrawSky(dc, 3.0);
+  DrawSky(dc);	//Previously it was DrawSky(dc, 3.0) but we dont use time for now.
   dc->z=1;
   
   //Below is the former sky system. It looks bad but I left it in to shame me
@@ -1029,9 +1030,9 @@ U0 DrawIt(CTask *task,CDC *dc)
 
   //This will determine which block on screen the player is hovering on
   human.mouseCoord.x = 
-   Floor((ms.pos.x+prettyOffset.x-8)/32+x1+1);
+   Floor((mouse.pos.x+prettyOffset.x-8)/32+x1+1);
   human.mouseCoord.y = 
-   Floor((ms.pos.y+prettyOffset.y+8)/32+y1+1);
+   Floor((mouse.pos.y+prettyOffset.y+8)/32+y1+1);
 
   /*
   Left click handler. Will not react to clicking on air unless removing
@@ -1609,7 +1610,7 @@ U0 SaveWorld(U8* saveName)
 {
   U64 i, j;
   U64 maxData = 100 + 4 * WORLD_HEIGHT * WORLD_WIDTH; 
-  U8* levelData= ACAlloc(maxData);
+  U8* levelData= SysCAlloc(maxData);
   
   CatPrint(levelData,"%u %u %u %u %u %u ",
               WORLD_HEIGHT,
@@ -1626,7 +1627,7 @@ U0 SaveWorld(U8* saveName)
     for(i=0;i<WORLD_WIDTH;i++)
     {
 
-      U8 blockData = (!!map[j][i].front<<1+ 
+      U64 blockData = (!!map[j][i].front<<1+ 
                       !!map[j][i].ladder)<<6+
                         map[j][i].id
                      );
@@ -1680,8 +1681,8 @@ I64 GetI64FromStringB10(U8* str)
 
 U8 GetU8FromStringB16(U8* str)
 {
-  U8 sum = 0;
-  U8 i;
+  U64 sum = 0;
+  U64 i;
 
   for(i=0; i<2; i++)
   { 
@@ -1735,7 +1736,7 @@ Bool LoadWorld(U8* saveName)
   {
     for(i=0;i<WORLD_WIDTH;i++)
     {
-      U8 blockData = GetU8FromStringB16(progress);
+      U64 blockData = GetU8FromStringB16(progress);
      
       Block b;
       b.id = (blockData << 2); b.id >>= 2;
@@ -1760,23 +1761,23 @@ U0 TheLoop()
 I64 msg_code,arg1,arg2,sc,ch;
   try {
     do {
-      if (msg_code=ScanMsg(&arg1,&arg2,1<<MSG_KEY_DOWN | 1<<MSG_KEY_UP |
-           1<< MSG_MS_L_DOWN |  1<< MSG_MS_R_DOWN)) {
+      if (msg_code=MessageScan(&arg1,&arg2,1<<MESSAGE_KEY_DOWN | 1<<MESSAGE_KEY_UP |
+           1<< MESSAGE_MS_L_DOWN |  1<< MESSAGE_MS_R_DOWN)) {
         //With $LK,"keyboard",A="FI:::/Doc/CharOverview.DD"$ msgs, the two msg args
 	//are the scan code and ascii val for the key.
 	sc=arg2; ch=arg1;
 
-        if (msg_code==MSG_MS_R_DOWN)        
+        if (msg_code==MESSAGE_MS_R_DOWN)        
         {
           human.hasRClick=TRUE;          
         }
 
-        if (msg_code==MSG_MS_L_DOWN)        
+        if (msg_code==MESSAGE_MS_L_DOWN)        
         {
           human.hasLClick=TRUE;  
         }
 
-	if (msg_code==MSG_KEY_DOWN) 
+	if (msg_code==MESSAGE_KEY_DOWN) 
         {
           switch(sc.u8[0])
           {
@@ -1818,7 +1819,7 @@ I64 msg_code,arg1,arg2,sc,ch;
             break;
           }
         }
-	if (msg_code==MSG_KEY_UP) 
+	if (msg_code==MESSAGE_KEY_UP) 
         {
           switch(sc.u8[0])
           {
@@ -1856,7 +1857,7 @@ I64 msg_code,arg1,arg2,sc,ch;
              {
                MUSIC = FALSE;
                music.mute = TRUE;
-               Snd;
+               Sound;
              }
              else
              {
@@ -1888,7 +1889,7 @@ I64 msg_code,arg1,arg2,sc,ch;
         else
         {
           GAMEOPEN=0;
-          SndRst;
+          SoundReset;
           music.mute=TRUE;
         
         
@@ -1930,7 +1931,7 @@ U0 MenuAbout()
   i=PopUpMenu(doc);
   if (i<0) i=0; // <SHIFT-ESC>
   DocDel(doc);
-  return i;
+  //return i; U0 should not return values.
 }
 
 class FDStruct
@@ -1973,8 +1974,8 @@ U0 StartupMenu()
   {
     do
     { 
-      //Save file names to an index, but without the extension
-      StrCpy(savedWorlds[i], c->name);
+      //Save file names to an index, but without the extension
+      StrCopy(savedWorlds[i], c->name);
       savedWorlds[i][StrLen(savedWorlds[i])-6]=0;
    
       //The button which contains the name and returns the index
@@ -2011,8 +2012,8 @@ U0 StartupMenu()
 
     //Let God pick a world name
     Seed(0);
-    StrCpy(fds.newWorldName, god.words[RandU64%god.num_words]);
-    CatPrint(fds.newWorldName, "_%s",god.words[RandU64%god.num_words]);
+    StrCopy(fds.newWorldName, god.words[RandU64%god.word_count]);
+    CatPrint(fds.newWorldName, "_%s",god.words[RandU64%god.word_count]);
 
     //Capitalize the name generated by GOD
     U8 k;
@@ -2024,7 +2025,7 @@ U0 StartupMenu()
 
     //Save name and use in case the player leaves the name empty
     U8 backupName[64];
-    StrCpy(backupName, fds.newWorldName);
+    StrCopy(backupName, fds.newWorldName);
 
     /*
     This makes the world name menu pop up and uses as default 2 words hand-
@@ -2047,7 +2048,7 @@ U0 StartupMenu()
 
     //Set the global used name for saving and loading purposes.
     if(!StrLen(fds.newWorldName))
-      StrCpy(fds.newWorldName, backupName);
+      StrCopy(fds.newWorldName, backupName);
     
     currentWorldName = fds.newWorldName;
 
@@ -2094,8 +2095,8 @@ U0 Main()
   TheLoop;
 
   DCDel(dc);
-  SettingsPop; 
-  Fs->win_inhibit=WIG_USER_TASK_DFT;
+  SettingsPop; 
+  Fs->win_inhibit=WIG_USER_TASK_DEFAULT;
 }
 Main;
         â     èÿÿÿ    /   /   ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ                                 ÿÿÿÿÿÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿ    ÿÿÿÿÿÿ    ÿÿÿÿÿ    ÿÿÿÿ    ÿÿÿ    ÿÿ    ÿ                                                                                                         ÿ    ÿÿ    ÿÿÿ    ÿÿÿÿ    ÿÿÿÿÿ    ÿÿÿÿÿÿ    ÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿÿÿÿÿ    ÿÿÿÿÿÿÿÿÿÿÿÿÿÿ                                 ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ         ê              )   ÿÿÿÿ        ÿÿÿÿÿÿÿ     ÿÿÿÿ ÿÿÿÿÿÿÿ ÿÿÿÿÿÿ     ÿÿÿ ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿ     ÿÿ ÿÿÿÿÿÿÿÿÿÿÿ ÿÿÿÿ     ÿÿ ÿÿÿÿÿÿÿÿÿÿÿ ÿÿÿÿ     ÿ ÿÿÿÿÿÿÿÿÿÿÿÿ ÿÿÿÿ      ÿÿÿÿÿÿÿÿÿÿÿÿÿ ÿÿÿÿ       ÿÿÿÿÿÿÿÿÿÿÿÿ ÿÿÿÿ     ÿÿ ÿÿÿÿÿÿÿÿÿÿÿ ÿÿÿÿ     ÿÿÿ  ÿÿÿÿÿÿÿÿÿ ÿÿÿÿ     ÿÿÿÿÿ ÿÿÿÿÿÿÿÿ ÿÿÿÿ     ÿÿÿÿÿÿ         ÿÿÿÿ     ÿÿÿÿÿÿÿ ÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿ         ÿÿÿÿ     ÿÿÿÿÿ ÿÿÿ ÿÿÿÿ ÿÿÿÿ     ÿÿÿÿ ÿÿÿÿ ÿÿÿÿÿ ÿÿÿ     ÿÿÿ ÿÿÿÿÿ ÿÿÿÿÿ ÿÿÿ     ÿÿ ÿÿÿÿÿÿ ÿÿÿÿÿÿ ÿÿ     ÿ ÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿ ÿ     ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿ       ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ ÿÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ  ÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿÿ  ÿÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿÿ ÿÿ ÿÿÿÿÿÿÿ     ÿÿÿÿÿÿÿ ÿÿÿÿ ÿÿÿÿÿÿ     ÿÿÿÿÿÿÿ ÿÿÿÿ ÿÿÿÿÿÿ     ÿÿÿÿÿÿ ÿÿÿÿÿÿ ÿÿÿÿÿ     ÿÿÿÿÿ ÿÿÿÿÿÿÿÿ ÿÿÿÿ     ÿÿÿÿ ÿÿÿÿÿÿÿÿÿÿ ÿÿÿ     ÿÿÿÿ ÿÿÿÿÿÿÿÿÿÿ ÿÿÿ     ÿÿÿ ÿÿÿÿÿÿÿÿÿÿÿÿ ÿÿ     ÿÿ ÿÿÿÿÿÿÿÿÿÿÿÿÿÿ ÿ     ÿÿ ÿÿÿÿÿÿÿÿÿÿÿÿÿÿ               â     èÿÿÿ    0   /   ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ        â     èÿÿÿ    0   /   ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
